@@ -1,0 +1,30 @@
+service:
+  name: go_test_backend
+  grpc_addr: ":50051"
+
+db:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "root111"
+  database: "postgres"
+  sslmode: "disable"
+
+migrations:
+  dir: "go_test_backend/migrations"
+
+id:
+  # 0~1023，用于雪花算法 worker id
+  worker_id: 1
+
+registry:
+  # 使用 Consul 做服务注册发现
+  consul_addr: "http://127.0.0.1:8500"
+  enable: true
+  service_name: "go_test_backend"
+  service_id: ""
+  advertise_host: "127.0.0.1"
+  advertise_port: 50051
+
+log:
+  level: "info"

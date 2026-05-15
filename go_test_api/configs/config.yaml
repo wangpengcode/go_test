@@ -1,0 +1,26 @@
+service:
+  name: go_test_api
+  http_addr: ":8080"
+  # 对外API统一前缀（可选）
+  base_path: ""
+
+backend:
+  # grpc_addr: "localhost:50051" # 不使用注册中心时走直连
+  grpc_addr: ""
+  timeout_ms: 3000
+
+registry:
+  # 使用 Consul 做服务注册发现
+  consul_addr: "http://127.0.0.1:8500"
+  enable: true
+  service_name: "go_test_api"
+  service_id: ""
+  advertise_host: "127.0.0.1"
+  advertise_port: 8080
+
+discovery:
+  enable: true
+  backend_service_name: "go_test_backend"
+
+log:
+  level: "info"
