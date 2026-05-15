@@ -12,6 +12,9 @@ import (
 )
 
 func UnaryServerLogger(log *zap.Logger) grpc.UnaryServerInterceptor {
+	// 给刚接触 Go 的同学：
+	// - Go 的函数可以返回另一个函数（闭包 closure）。
+	// - grpc.UnaryServerInterceptor 是 gRPC 定义的一种函数类型，用来“拦截/包装”请求处理流程。
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		start := time.Now()
 		userID, ok := extractUserID(req)
@@ -42,6 +45,9 @@ func UnaryServerLogger(log *zap.Logger) grpc.UnaryServerInterceptor {
 }
 
 func extractUserID(v any) (string, bool) {
+	// 给刚接触 Go 的同学：
+	// - `any` 等价于 interface{}，表示“任意类型”。
+	// - reflect（反射）允许我们在运行时动态查看/读取一个值的结构（这里用来找 UserID 字段）。
 	rv := reflect.ValueOf(v)
 	if !rv.IsValid() {
 		return "", false

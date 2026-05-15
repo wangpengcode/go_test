@@ -20,6 +20,11 @@ type Migration struct {
 	SQL      string
 }
 
+// ApplyDir 会从 dir 加载 *.sql 文件，并按版本顺序依次执行。
+//
+// 给刚接触 Go 的同学：
+// - `map[string]bool` 是 map（哈希表），这里把它当作“集合”来用：key 表示版本号是否已执行。
+// - `for _, m := range migs` 遍历切片；`_` 表示“我不需要这个值，忽略掉”。
 func ApplyDir(db *gorm.DB, dir string, log *zap.Logger) error {
 	if err := ensureMigrationsTable(db); err != nil {
 		return err
@@ -51,6 +56,7 @@ func ApplyDir(db *gorm.DB, dir string, log *zap.Logger) error {
 	return nil
 }
 
+// ensureMigrationsTable 会在数据库里创建 schema_migrations 表（如果不存在）。
 func ensureMigrationsTable(db *gorm.DB) error {
 	return db.Exec(`
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -60,6 +66,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 `).Error
 }
 
+// getAppliedVersions 会把已经执行过的迁移版本读出来，放进一个“集合”里返回。
 func getAppliedVersions(db *gorm.DB) (map[string]bool, error) {
 	type row struct {
 		Version string
@@ -75,6 +82,7 @@ func getAppliedVersions(db *gorm.DB) (map[string]bool, error) {
 	return out, nil
 }
 
+// applyOne 在一个事务里执行单条迁移（要么都成功，要么都回滚）。
 func applyOne(db *gorm.DB, m Migration) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(m.SQL).Error; err != nil {
@@ -87,6 +95,7 @@ func applyOne(db *gorm.DB, m Migration) error {
 	})
 }
 
+// loadMigrations 会遍历目录，加载符合 Flyway 风格命名的 SQL：V1__desc.sql。
 func loadMigrations(dir string) ([]Migration, error) {
 	st, err := os.Stat(dir)
 	if err != nil {
@@ -130,8 +139,9 @@ func loadMigrations(dir string) ([]Migration, error) {
 	return migs, nil
 }
 
+// parseVersion 从文件名里解析版本号，例如 V1__init.sql -> "1"。
 func parseVersion(filename string) (string, bool) {
-	// Flyway-like: V1__desc.sql, V20260515_1__desc.sql, etc.
+	// Flyway 风格：V1__desc.sql、V20260515_1__desc.sql 等。
 	base := filepath.Base(filename)
 	if len(base) < 3 {
 		return "", false

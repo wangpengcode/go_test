@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// SnowflakeID is a minimal snowflake-like generator:
-// 41 bits timestamp (ms) | 10 bits worker | 12 bits sequence.
+// SnowflakeID 是一个简化版的“雪花算法”ID 生成器：
+// 41 位时间戳（毫秒）| 10 位 worker | 12 位序列号。
 type SnowflakeID struct {
 	mu       sync.Mutex
 	epochMS  int64
@@ -24,6 +24,11 @@ const (
 	maxSequence = (1 << sequenceBits) - 1
 )
 
+// NewSnowflake 创建一个 SnowflakeID 生成器。
+//
+// 给刚接触 Go 的同学：
+// - `&SnowflakeID{...}` 表示“取地址”，也就是返回结构体指针。
+// - 这里返回 error 的目的：如果 workerID 不合法，就不要创建一个“坏的”生成器。
 func NewSnowflake(workerID int64) (*SnowflakeID, error) {
 	if workerID < 0 || workerID > maxWorkerID {
 		return nil, errors.New("worker_id out of range (0~1023)")
@@ -34,13 +39,18 @@ func NewSnowflake(workerID int64) (*SnowflakeID, error) {
 	}, nil
 }
 
+// Next 生成下一个唯一 ID。
+//
+// 给刚接触 Go 的同学：
+// - `g.mu.Lock()` / `defer g.mu.Unlock()` 用来保护并发下的共享状态（避免多个 goroutine 同时改数据）。
+// - `defer` 会在函数结束时执行（哪怕中间 return 了也会执行）。
 func (g *SnowflakeID) Next() int64 {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	nowMS := time.Now().UnixMilli()
 	if nowMS < g.lastMS {
-		// clock moved backwards; wait until lastMS
+		// 系统时间回拨了：这里简单处理为“不让时间变小”，避免生成重复 ID。
 		nowMS = g.lastMS
 	}
 

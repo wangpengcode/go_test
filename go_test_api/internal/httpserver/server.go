@@ -18,10 +18,15 @@ type Server struct {
 	timeout time.Duration
 }
 
+// New 创建一个 HTTP Server，它内部会通过 gRPC 调用后端。
 func New(log *zap.Logger, userCli usergrpc.UserServiceClient, timeout time.Duration) *Server {
 	return &Server{log: log, userCli: userCli, timeout: timeout}
 }
 
+// Handler 返回一个 http.Handler，并注册这些路由：
+// - POST   {basePath}/users      新增用户
+// - GET    {basePath}/users/{id} 查询用户
+// - GET    {basePath}/health     健康检查
 func (s *Server) Handler(basePath string) http.Handler {
 	mux := http.NewServeMux()
 	prefix := strings.TrimRight(basePath, "/")
@@ -32,6 +37,7 @@ func (s *Server) Handler(basePath string) http.Handler {
 	return mux
 }
 
+// handleUsers 处理 POST /users：创建用户。
 func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
@@ -57,6 +63,7 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// handleUserByID 处理 GET /users/{id}：按 ID 查询用户。
 func (s *Server) handleUserByID(w http.ResponseWriter, r *http.Request, prefix string) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
@@ -64,7 +71,7 @@ func (s *Server) handleUserByID(w http.ResponseWriter, r *http.Request, prefix s
 		return
 	}
 
-	// /users/{id}
+	// URL 形如：/users/{id}
 	want := prefix + "/users/"
 	if !strings.HasPrefix(r.URL.Path, want) {
 		writeJSON(w, http.StatusNotFound, map[string]any{"error": "not found"})
@@ -88,6 +95,7 @@ func (s *Server) handleUserByID(w http.ResponseWriter, r *http.Request, prefix s
 	writeJSON(w, http.StatusOK, out)
 }
 
+// writeJSON 输出 JSON 响应，并设置 HTTP 状态码。
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)

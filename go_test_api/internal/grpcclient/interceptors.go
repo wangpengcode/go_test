@@ -12,6 +12,7 @@ import (
 )
 
 func unaryClientLogger(log *zap.Logger) grpc.UnaryClientInterceptor {
+	// UnaryClientInterceptor 是一种函数类型，可以“包装”每一次发出去的 gRPC 调用。
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		start := time.Now()
 		if userID, ok := extractUserID(req); ok {
@@ -39,6 +40,8 @@ func unaryClientLogger(log *zap.Logger) grpc.UnaryClientInterceptor {
 }
 
 func extractUserID(v any) (string, bool) {
+	// 这里用反射尝试读取请求里的 "UserID"/"UserId" 字段，用于日志追踪。
+	// 好处：日志逻辑更通用，不要求每种请求类型都实现某个特定接口。
 	rv := reflect.ValueOf(v)
 	if !rv.IsValid() {
 		return "", false

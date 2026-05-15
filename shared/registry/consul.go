@@ -16,13 +16,16 @@ import (
 	"time"
 )
 
-// Minimal Consul HTTP API client (no external deps).
+// 极简版 Consul HTTP API 客户端（不依赖第三方库）。
 
 type Consul struct {
 	addr   string
 	client *http.Client
 }
 
+// NewConsul 创建一个极简的 Consul HTTP API 客户端。
+//
+// addr 例子："http://127.0.0.1:8500"。
 func NewConsul(addr string) *Consul {
 	return &Consul{
 		addr: strings.TrimRight(addr, "/"),
@@ -50,6 +53,7 @@ type Check struct {
 	DeregisterCriticalServiceAfter string `json:"DeregisterCriticalServiceAfter,omitempty"`
 }
 
+// Register 向 Consul 注册（或更新）一个服务实例。
 func (c *Consul) Register(ctx context.Context, req RegisterRequest) error {
 	if c.addr == "" {
 		return errors.New("consul addr is empty")
@@ -83,6 +87,7 @@ func (c *Consul) Register(ctx context.Context, req RegisterRequest) error {
 	return nil
 }
 
+// Deregister 从 Consul 注销一个服务实例（按 serviceID）。
 func (c *Consul) Deregister(ctx context.Context, serviceID string) error {
 	if c.addr == "" {
 		return errors.New("consul addr is empty")
@@ -113,6 +118,11 @@ type HealthServiceEntry struct {
 	} `json:"Service"`
 }
 
+// DiscoverOne 从 Consul 里找一个“健康”的 serviceName 实例，并返回 "host:port"。
+//
+// 给刚接触 Go 的同学：
+// - Consul 的 health API 返回的是实例列表；这里为了简单，取第一个。
+// - 后续你可以扩展为负载均衡（随机、轮询等）。
 func (c *Consul) DiscoverOne(ctx context.Context, serviceName string) (string, error) {
 	if c.addr == "" {
 		return "", errors.New("consul addr is empty")
@@ -146,6 +156,7 @@ func (c *Consul) DiscoverOne(ctx context.Context, serviceName string) (string, e
 	return net.JoinHostPort(addr, strconv.Itoa(e.Service.Port)), nil
 }
 
+// DefaultInstanceID 生成一个“尽量不重复”的实例 ID 字符串。
 func DefaultInstanceID(serviceName string) string {
 	host, _ := os.Hostname()
 	rand.Seed(time.Now().UnixNano())
