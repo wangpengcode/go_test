@@ -6,14 +6,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type Model struct {
+type UserModel struct {
 	UserID string `gorm:"column:user_id;primaryKey"`
 	Name   string `gorm:"column:name"`
 	Status string `gorm:"column:status"`
 }
 
 // TableName 告诉 GORM：Model 对应的表名是什么。
-func (Model) TableName() string { return "users" }
+func (UserModel) TableName() string { return "users" }
 
 type Repo struct {
 	db *gorm.DB
@@ -23,23 +23,23 @@ type Repo struct {
 func NewRepo(db *gorm.DB) *Repo { return &Repo{db: db} }
 
 // Add 插入一条用户数据。
-func (r *Repo) Add(ctx context.Context, u Model) (Model, error) {
+func (r *Repo) Add(ctx context.Context, u UserModel) (UserModel, error) {
 	if err := r.db.WithContext(ctx).Create(&u).Error; err != nil {
-		return Model{}, err
+		return UserModel{}, err
 	}
 	return u, nil
 }
 
 // Query 按 userID 查询用户。
 // 返回值含义：（model, 是否找到 found, error）。
-func (r *Repo) Query(ctx context.Context, userID string) (Model, bool, error) {
-	var out Model
+func (r *Repo) Query(ctx context.Context, userID string) (UserModel, bool, error) {
+	var out UserModel
 	err := r.db.WithContext(ctx).First(&out, "user_id = ?", userID).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return Model{}, false, nil
+			return UserModel{}, false, nil
 		}
-		return Model{}, false, err
+		return UserModel{}, false, err
 	}
 	return out, true, nil
 }

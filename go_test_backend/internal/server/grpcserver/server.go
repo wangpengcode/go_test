@@ -4,19 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
 	"go_test/shared/user"
 	"go_test/shared/usergrpc"
+
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type IDGen interface {
+type IDGenWithSnowflake interface {
 	// Next 返回一个新的 int64 ID（例如雪花算法）。
 	Next() int64
 }
 
-type Repo interface {
+type UserRepo interface {
 	// Add 保存用户并返回保存后的模型。
 	Add(ctx context.Context, u UserModel) (UserModel, error)
 	// Query 按 userID 查询用户；found 表示是否找到。
@@ -31,8 +32,8 @@ type UserModel struct {
 
 type Server struct {
 	log   *zap.Logger
-	repo  Repo
-	idgen IDGen
+	repo  UserRepo
+	idgen IDGenWithSnowflake
 }
 
 // New constructs a Server.
@@ -40,7 +41,7 @@ type Server struct {
 // 给刚接触 Go 的同学：
 // - `Repo` 和 `IDGen` 是接口：这样你可以在测试或不同存储方式下替换实现。
 // - Go 更强调“组合而不是继承”：通过参数传入依赖，而不是搞一堆父类/子类。
-func New(log *zap.Logger, repo Repo, idgen IDGen) *Server {
+func New(log *zap.Logger, repo UserRepo, idgen IDGenWithSnowflake) *Server {
 	return &Server{log: log, repo: repo, idgen: idgen}
 }
 
