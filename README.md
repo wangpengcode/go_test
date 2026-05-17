@@ -11,3 +11,9 @@ Use `./.tools/consul/consul agent -dev -ui -client=127.0.0.1`
 4. other commands you may need
 Use `go mod tidy`
 
+5. add consul key-value configuration
+
+![img.png](img.png)
+6. you can request the black list 
+
+![img_1.png](img_1.png)

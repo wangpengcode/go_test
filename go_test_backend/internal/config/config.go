@@ -25,8 +25,25 @@ type Config struct {
 	// Registry 保存 Consul 注册相关配置。
 	Registry registry.Config `mapstructure:"registry"`
 
+	// ConsulKV 保存从 Consul KV 读取配置的相关参数。
+	ConsulKV ConsulKVConfig `mapstructure:"consul_kv"`
+
 	// Log 保存日志等级等配置。
 	Log LogConfig `mapstructure:"log"`
+}
+
+type ConsulKVConfig struct {
+	// Enable 控制是否启用 Consul KV 配置读取。
+	Enable bool `mapstructure:"enable"`
+
+	// UserBlacklistKey 是 Consul KV 里保存用户黑名单的 key。
+	// 支持示例：
+	// - "go_test/user/blacklist"
+	// - "/go_test/user/blacklist"（前导 / 会被忽略）
+	UserBlacklistKey string `mapstructure:"user_blacklist_key"`
+
+	// CacheTTLSeconds 是缓存黑名单的秒数，避免每次 Query 都打到 Consul。
+	CacheTTLSeconds int `mapstructure:"cache_ttl_seconds"`
 }
 
 // ServiceConfig 对应配置文件里的 service 段（后端服务）。
