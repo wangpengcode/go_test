@@ -1,6 +1,10 @@
 package channel
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+	"time"
+)
 
 func ChannelPractice() {
 	sending := make(chan int)
@@ -32,4 +36,23 @@ func ChannelPractice() {
 		println("reception ", rec)
 	}
 	wg.Wait()
+}
+
+func doWork(done chan bool) {
+	select {
+	case <-done:
+		println("doWork is done")
+		return
+	default:
+		println("do work is running")
+	}
+}
+
+func ChannelPracticeDoneSignal() {
+	done := make(chan bool)
+	go doWork(done)
+
+	time.Sleep(time.Second * 10)
+	close(done)
+	fmt.Println("ChannelPracticeDoneSignal is over")
 }
