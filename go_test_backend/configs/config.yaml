@@ -26,5 +26,13 @@ registry:
   advertise_host: "127.0.0.1"
   advertise_port: 50051
 
+consul_kv:
+  # 使用 Consul KV 作为“动态配置”
+  enable: true
+  # 用户黑名单 key（value 支持 JSON 数组 或 逗号/换行分隔）
+  user_blacklist_key: "go_test/user/blacklist"
+  # 缓存秒数：避免每次查询都访问 Consul
+  cache_ttl_seconds: 5
+
 log:
   level: "info"

@@ -6,6 +6,7 @@ type User struct {
 	UserID string `json:"user_id"`
 	Name   string `json:"name"`
 	Status string `json:"status"`
+	Mock   bool   `json:"mock"`
 }
 
 // QueryRequest 是“按 user_id 查询”的请求参数。

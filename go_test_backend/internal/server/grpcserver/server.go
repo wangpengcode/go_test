@@ -31,9 +31,10 @@ type UserModel struct {
 }
 
 type Server struct {
-	log   *zap.Logger
-	repo  UserRepo
-	idgen IDGenWithSnowflake
+	log       *zap.Logger
+	repo      UserRepo
+	idgen     IDGenWithSnowflake
+	blacklist UserBlacklistChecker
 }
 
 // New constructs a Server.
@@ -41,8 +42,8 @@ type Server struct {
 // 给刚接触 Go 的同学：
 // - `Repo` 和 `IDGen` 是接口：这样你可以在测试或不同存储方式下替换实现。
 // - Go 更强调“组合而不是继承”：通过参数传入依赖，而不是搞一堆父类/子类。
-func New(log *zap.Logger, repo UserRepo, idgen IDGenWithSnowflake) *Server {
-	return &Server{log: log, repo: repo, idgen: idgen}
+func New(log *zap.Logger, repo UserRepo, idgen IDGenWithSnowflake, blacklist UserBlacklistChecker) *Server {
+	return &Server{log: log, repo: repo, idgen: idgen, blacklist: blacklist}
 }
 
 // Add 实现 gRPC 接口 UserService/Add。
@@ -72,6 +73,21 @@ func (s *Server) Query(ctx context.Context, in *user.QueryRequest) (*user.User, 
 		return nil, status.Error(codes.InvalidArgument, "user_id required")
 	}
 	s.log.Info("query user", zap.String("user_id", in.UserID))
+
+	if s.blacklist != nil {
+		blacklisted, err := s.blacklist.IsBlacklisted(ctx, in.UserID)
+		if err != nil {
+			s.log.Warn("check user blacklist failed", zap.Error(err), zap.String("user_id", in.UserID))
+		} else if blacklisted {
+			return &user.User{
+				UserID: in.UserID,
+				Name:   "mock_user",
+				Status: "blacklisted",
+				Mock:   true,
+			}, nil
+		}
+	}
+
 	out, ok, err := s.repo.Query(ctx, in.UserID)
 	if err != nil {
 		s.log.Error("db query user failed", zap.Error(err))
@@ -80,7 +96,7 @@ func (s *Server) Query(ctx context.Context, in *user.QueryRequest) (*user.User, 
 	if !ok {
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
-	return &user.User{UserID: out.UserID, Name: out.Name, Status: out.Status}, nil
+	return &user.User{UserID: out.UserID, Name: out.Name, Status: out.Status, Mock: false}, nil
 }
 
 // 编译期检查：

@@ -35,6 +35,51 @@ func NewConsul(addr string) *Consul {
 	}
 }
 
+// NewConsulWithClient 与 NewConsul 类似，但允许注入自定义 http.Client（便于测试/自定义）。
+func NewConsulWithClient(addr string, client *http.Client) *Consul {
+	if client == nil {
+		client = &http.Client{Timeout: 3 * time.Second}
+	}
+	return &Consul{
+		addr:   strings.TrimRight(addr, "/"),
+		client: client,
+	}
+}
+
+// GetKVRaw 从 Consul KV 读取一个 key 的原始字符串内容（使用 ?raw）。
+//
+// ok=false 表示 key 不存在（Consul 返回 404）。
+func (c *Consul) GetKVRaw(ctx context.Context, key string) (val string, ok bool, err error) {
+	if c.addr == "" {
+		return "", false, errors.New("consul addr is empty")
+	}
+	key = strings.TrimLeft(key, "/")
+	if key == "" {
+		return "", false, errors.New("consul kv key is empty")
+	}
+
+	u := c.addr + "/v1/kv/" + key + "?raw=1"
+	httpReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return "", false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return "", false, nil
+	}
+	if resp.StatusCode/100 != 2 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", false, fmt.Errorf("consul kv get failed: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", false, err
+	}
+	return string(body), true, nil
+}
+
 type RegisterRequest struct {
 	ID      string   `json:"ID,omitempty"`
 	Name    string   `json:"Name"`

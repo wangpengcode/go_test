@@ -70,7 +70,15 @@ func Run(ctx context.Context, opts Options) error {
 
 	// repoAdapter 实现了 grpcserver.Repo 接口（见 adapter.go）。
 	repo := user.NewRepo(gormDB)
-	svc := grpcserver.New(log, repoAdapter{repo: repo}, idgen)
+
+	var blacklist grpcserver.UserBlacklistChecker
+	if cfg.ConsulKV.Enable && cfg.Registry.ConsulAddr != "" && cfg.ConsulKV.UserBlacklistKey != "" {
+		consul := registry.NewConsul(cfg.Registry.ConsulAddr)
+		ttl := time.Duration(cfg.ConsulKV.CacheTTLSeconds) * time.Second
+		blacklist = grpcserver.NewConsulUserBlacklist(consul, cfg.ConsulKV.UserBlacklistKey, ttl)
+	}
+
+	svc := grpcserver.New(log, repoAdapter{repo: repo}, idgen, blacklist)
 
 	// 5) 启动 gRPC 服务端。
 	grpcSrv := grpc.NewServer(grpc.UnaryInterceptor(grpcserver.UnaryServerLogger(log)))
